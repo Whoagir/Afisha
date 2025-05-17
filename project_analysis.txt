@@ -1,0 +1,178 @@
+Структура проекта:
+├── .editorconfig
+├── .env
+├── .env.db
+├── .flake8
+├── .gitattributes
+├── .gitignore
+├── .pre-commit-config.yaml
+├── Dockerfile
+├── README.md
+├── docker-compose.yaml
+├── poetry.lock
+├── pyproject.toml
+├── requirements.txt
+├── .git/
+│   ├── COMMIT_EDITMSG
+│   ├── FETCH_HEAD
+│   ├── HEAD
+│   ├── ORIG_HEAD
+│   ├── config
+│   ├── description
+│   ├── index
+│   ├── packed-refs
+│   ├── refs/
+│   │   ├── tags/
+│   │   ├── heads/
+│   │   │   └── main
+│   │   ├── remotes/
+│   │   │   ├── origin/
+│   │   │   │   ├── HEAD
+│   │   │   │   └── main
+│   ├── objects/
+│   ├── hooks/
+│   │   ├── applypatch-msg.sample
+│   │   ├── commit-msg.sample
+│   │   ├── fsmonitor-watchman.sample
+│   │   ├── post-update.sample
+│   │   ├── pre-applypatch.sample
+│   │   ├── pre-commit
+│   │   ├── pre-commit.sample
+│   │   ├── pre-merge-commit.sample
+│   │   ├── pre-push.sample
+│   │   ├── pre-rebase.sample
+│   │   ├── pre-receive.sample
+│   │   ├── prepare-commit-msg.sample
+│   │   ├── push-to-checkout.sample
+│   │   ├── sendemail-validate.sample
+│   │   └── update.sample
+│   ├── logs/
+│   │   ├── HEAD
+│   │   ├── refs/
+│   │   │   ├── heads/
+│   │   │   │   └── main
+│   │   │   ├── remotes/
+│   │   │   │   ├── origin/
+│   │   │   │   │   ├── HEAD
+│   │   │   │   │   └── main
+│   ├── info/
+│   │   └── exclude
+├── src/
+│   ├── db.sqlite3
+│   ├── manage.py
+│   ├── notifications/
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── models.py
+│   │   ├── tests.py
+│   │   ├── views.py
+│   │   ├── migrations/
+│   │   │   ├── __init__.py
+│   │   │   ├── __pycache__/
+│   │   │   │   └── __init__.cpython-312.pyc
+│   │   ├── __pycache__/
+│   │   │   ├── __init__.cpython-312.pyc
+│   │   │   ├── admin.cpython-312.pyc
+│   │   │   ├── apps.cpython-312.pyc
+│   │   │   └── models.cpython-312.pyc
+│   ├── bookings/
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── models.py
+│   │   ├── tests.py
+│   │   ├── views.py
+│   │   ├── migrations/
+│   │   │   ├── __init__.py
+│   │   │   ├── __pycache__/
+│   │   │   │   └── __init__.cpython-312.pyc
+│   │   ├── __pycache__/
+│   │   │   ├── __init__.cpython-312.pyc
+│   │   │   ├── admin.cpython-312.pyc
+│   │   │   ├── apps.cpython-312.pyc
+│   │   │   └── models.cpython-312.pyc
+│   ├── afisha/
+│   │   ├── __init__.py
+│   │   ├── asgi.py
+│   │   ├── celery.py
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   ├── wsgi.py
+│   │   ├── __pycache__/
+│   │   │   ├── __init__.cpython-312.pyc
+│   │   │   ├── settings.cpython-312.pyc
+│   │   │   ├── urls.cpython-312.pyc
+│   │   │   └── wsgi.cpython-312.pyc
+│   ├── events/
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── models.py
+│   │   ├── tests.py
+│   │   ├── views.py
+│   │   ├── migrations/
+│   │   │   ├── __init__.py
+│   │   │   ├── __pycache__/
+│   │   │   │   └── __init__.cpython-312.pyc
+│   │   ├── __pycache__/
+│   │   │   ├── __init__.cpython-312.pyc
+│   │   │   ├── admin.cpython-312.pyc
+│   │   │   ├── apps.cpython-312.pyc
+│   │   │   └── models.cpython-312.pyc
+│   ├── common/
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── models.py
+│   │   ├── tests.py
+│   │   ├── views.py
+│   │   ├── migrations/
+│   │   │   ├── __init__.py
+│   │   │   ├── __pycache__/
+│   │   │   │   └── __init__.cpython-312.pyc
+│   │   ├── __pycache__/
+│   │   │   ├── __init__.cpython-312.pyc
+│   │   │   ├── admin.cpython-312.pyc
+│   │   │   ├── apps.cpython-312.pyc
+│   │   │   └── models.cpython-312.pyc
+│   ├── users/
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── models.py
+│   │   ├── tests.py
+│   │   ├── views.py
+│   │   ├── migrations/
+│   │   │   ├── __init__.py
+│   │   │   ├── __pycache__/
+│   │   │   │   └── __init__.cpython-312.pyc
+│   │   ├── __pycache__/
+│   │   │   ├── __init__.cpython-312.pyc
+│   │   │   ├── admin.cpython-312.pyc
+│   │   │   ├── apps.cpython-312.pyc
+│   │   │   └── models.cpython-312.pyc
+
+
+
+==================================================
+
+Функции и классы по файлам:
+
+Файл: src\bookings\apps.py
+-class BookingsConfig(AppConfig)
+
+Файл: src\common\apps.py
+-class CommonConfig(AppConfig)
+
+Файл: src\events\apps.py
+-class EventsConfig(AppConfig)
+
+Файл: src\manage.py
+-def main()
+
+Файл: src\notifications\apps.py
+-class NotificationsConfig(AppConfig)
+
+Файл: src\users\apps.py
+-class UsersConfig(AppConfig)

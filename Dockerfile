@@ -1,37 +1,45 @@
 # Stage 1 – build
-FROM python:3.12-slim AS builder
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      build-essential libpq-dev && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN pip install "poetry==1.7.1"
+FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Копируем только файлы для установки зависимостей
+# Установка зависимостей для сборки
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Установка Poetry
+RUN pip install --no-cache-dir "poetry==1.8.2"
+
+# Копирование только файлов зависимостей для кэширования слоя
 COPY pyproject.toml poetry.lock* /app/
 
-# Устанавливаем зависимости
-RUN poetry config virtualenvs.create false \
- && poetry install --no-interaction --no-ansi --without dev
+# Экспорт зависимостей в requirements.txt для более быстрой установки
+RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
 
-# Копируем остальной код
-COPY . /app/
+# Установка зависимостей
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Stage 2 – runtime
-FROM python:3.12-slim
-
-RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev && \
-    rm -rf /var/lib/apt/lists/*
-
-COPY --from=builder /usr/local /usr/local
+FROM python:3.11-slim
 
 WORKDIR /app
-COPY src/ /app/src/
 
-ENV PYTHONPATH=/app/src
+# Установка только необходимых рантайм-зависимостей
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      libpq-dev curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Копирование установленных пакетов из builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Копирование кода приложения
+COPY src/ /app/
+
+ENV PYTHONPATH=/app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 USER nobody
-
 CMD ["gunicorn", "afisha.wsgi:application", "-b", "0.0.0.0:8000", "-w", "3"]

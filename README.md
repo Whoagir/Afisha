@@ -1,2 +1,38 @@
-# Afisha
-A RESTful service for managing events with booking, real-time notifications, and background tasks. Built with Django, PostgreSQL, and Celery/Redis; includes event ratings, tags, and Docker deployment.
+# Афиша мероприятий API
+
+API для просмотра будущих мероприятий, бронирования и уведомлений о предстоящем мероприятии.
+
+## Функциональность
+
+- Регистрация и авторизация пользователей
+- Создание, просмотр, редактирование и удаление мероприятий
+- Бронирование мест на мероприятия и отмена бронирования
+- Уведомления о бронировании, отмене и напоминания о предстоящих мероприятиях
+- Оценка прошедших мероприятий
+- Теги для мероприятий
+- Полнотекстовый поиск по описанию мероприятий
+- Фильтрация и сортировка мероприятий
+
+## Технологии
+
+- Python 3.11
+- Django 4.2
+- Django REST Framework
+- PostgreSQL
+- Redis
+- Celery
+- Docker & Docker Compose
+- Nginx
+
+## Запуск проекта
+
+### Предварительные требования
+
+- Docker и Docker Compose
+
+### Шаги для запуска
+
+1. Клонировать репозиторий:
+   ```bash
+   git clone https://github.com/yourusername/afisha.git
+   cd afisha
