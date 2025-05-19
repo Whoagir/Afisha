@@ -1,13 +1,9 @@
-from datetime import timedelta  # noqa: F401
-
+# events/views.py
 import django_filters
-from django.db.models import Avg, Count, Prefetch, Q  # noqa: F401
-from django.utils import timezone
-from rest_framework import filters, mixins, permissions, status, viewsets
+from rest_framework import filters, mixins, permissions, status, viewsets  # noqa: F401
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from bookings.models import Booking  # noqa: F401
 from events.filters import EventFilter
 from events.models import Event, Rating, Tag
 from events.permissions import IsOrganizerOrReadOnly
@@ -26,33 +22,18 @@ from events.services.booking import (
     cancel_booking,
     create_booking,
 )
+from events.services.event import get_events_queryset  # noqa: F401
+from events.services.event import (
+    can_delete_event,
+    get_user_upcoming_events,
+)
+from events.services.rating import EventNotFound as RatingEventNotFound
 from events.services.rating import EventNotRatable, UserNotAttended, rate_event
 
 
 class EventViewSet(viewsets.ModelViewSet):
     """
     API для работы с мероприятиями.
-
-    list:
-        Получить список всех мероприятий
-    retrieve:
-        Получить детальную информацию о мероприятии
-    create:
-        Создать новое мероприятие
-    update:
-        Обновить мероприятие (только для организатора)
-    partial_update:
-        Частично обновить мероприятие (только для организатора)
-    destroy:
-        Удалить мероприятие (только для организатора и только в течение часа после создания)
-    book:
-        Забронировать место на мероприятии
-    cancel_booking:
-        Отменить бронирование
-    my_upcoming:
-        Получить список предстоящих мероприятий пользователя
-    rate:
-        Оценить мероприятие (только для завершенных мероприятий и только для участников)
     """
 
     queryset = Event.objects.all()
@@ -64,34 +45,6 @@ class EventViewSet(viewsets.ModelViewSet):
     filterset_class = EventFilter
     ordering_fields = ["start_at", "created_at", "average_rating"]
     search_fields = ["title", "description"]
-
-    def get_queryset(self):
-        queryset = Event.objects.all().select_related("organizer")
-
-        # Аннотируем количество активных бронирований
-        queryset = queryset.annotate(
-            active_bookings_count=Count(
-                "bookings", filter=Q(bookings__cancelled_at__isnull=True)
-            ),
-            average_rating=Avg("ratings__score"),
-        )
-
-        # Сортировка: сначала предстоящие, затем прошедшие и отмененные
-        now = timezone.now()
-        if self.action == "list" and not self.request.query_params.get("ordering"):
-            upcoming = queryset.filter(
-                status=Event.Status.EXPECTED, start_at__gt=now
-            ).order_by("start_at")
-
-            past_or_cancelled = queryset.filter(
-                Q(status__in=[Event.Status.FINISHED, Event.Status.CANCELLED])
-                | Q(start_at__lte=now)
-            ).order_by("-start_at")
-
-            # Объединяем результаты
-            return upcoming.union(past_or_cancelled)
-
-        return queryset
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -114,7 +67,7 @@ class EventViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         # Проверка: можно удалить только в течение часа после создания
-        if not instance.can_be_deleted():
+        if not can_delete_event(instance):
             return Response(
                 {"detail": "Events can only be deleted within 1 hour of creation."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -125,8 +78,11 @@ class EventViewSet(viewsets.ModelViewSet):
     def book(self, request, pk=None):
         """Забронировать место на мероприятии"""
         try:
-            booking = create_booking(request.user, pk)  # noqa: F841
-            return Response(status=status.HTTP_201_CREATED)
+            booking = create_booking(request.user, pk)
+            return Response(
+                {"status": "booking created", "booking_id": booking.id},
+                status=status.HTTP_201_CREATED,
+            )
         except NoSeats:
             return Response(
                 {"detail": "No seats available for this event."},
@@ -146,8 +102,11 @@ class EventViewSet(viewsets.ModelViewSet):
     def cancel_booking(self, request, pk=None):
         """Отменить бронирование"""
         try:
-            cancel_booking(request.user, pk)
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            booking = cancel_booking(request.user, pk)
+            return Response(
+                {"status": "booking cancelled", "booking_id": booking.id},
+                status=status.HTTP_200_OK,
+            )
         except BookingNotFound:
             return Response(
                 {"detail": "Booking not found or already cancelled."},
@@ -157,12 +116,12 @@ class EventViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def my_upcoming(self, request):
         """Получить список предстоящих мероприятий пользователя"""
-        now = timezone.now()
-        events = Event.objects.filter(
-            bookings__user=request.user,
-            bookings__cancelled_at__isnull=True,
-            start_at__gt=now,
-        ).order_by("start_at")
+        # Добавляем select_related для связанных моделей
+        events = (
+            get_user_upcoming_events(request.user)
+            .select_related("organizer")
+            .prefetch_related("tags")
+        )
 
         page = self.paginate_queryset(events)
         if page is not None:
@@ -196,7 +155,7 @@ class EventViewSet(viewsets.ModelViewSet):
                     RatingSerializer(rating, context={"request": request}).data,
                     status=status.HTTP_201_CREATED,
                 )
-            except EventNotRatable:
+            except (EventNotRatable, RatingEventNotFound):
                 return Response(
                     {"detail": "You can only rate finished events."},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -209,42 +168,50 @@ class EventViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class TagViewSet(viewsets.ReadOnlyModelViewSet):
+class RatingViewSet(viewsets.ModelViewSet):
     """
-    API для работы с тегами.
+    API для работы с оценками мероприятий.
+    """
 
-    list:
-        Получить список всех тегов
-    retrieve:
-        Получить детальную информацию о теге
+    queryset = Rating.objects.all()
+    serializer_class = RatingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Оптимизируем запрос с select_related
+        return (
+            Rating.objects.filter(event__organizer=self.request.user)
+            | Rating.objects.filter(user=self.request.user)
+        ).select_related("user", "event", "event__organizer")
+
+    def perform_create(self, serializer):
+        event_id = self.request.data.get("event")
+        try:
+            rating = rate_event(
+                user=self.request.user,
+                event_id=event_id,
+                score=serializer.validated_data["score"],
+                comment=serializer.validated_data.get("comment", ""),
+            )
+            return rating
+        except (EventNotRatable, EventNotFound):
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError({"detail": "You can only rate finished events."})
+        except UserNotAttended:
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied({"detail": "You did not attend this event."})
+
+
+class TagViewSet(viewsets.ModelViewSet):
+    """
+    API для работы с тегами мероприятий.
     """
 
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    filter_backends = [filters.SearchFilter]
-    search_fields = ["name"]
-
-
-class RatingViewSet(
-    mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
-):
-    """
-    API для работы с оценками.
-
-    list:
-        Получить список всех оценок
-    retrieve:
-        Получить детальную информацию об оценке
-    """
-
-    queryset = Rating.objects.all().select_related("user", "event")
-    serializer_class = RatingSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        event_id = self.request.query_params.get("event")
-        if event_id:
-            queryset = queryset.filter(event_id=event_id)
-        return queryset
+        return Tag.objects.all().order_by("name")

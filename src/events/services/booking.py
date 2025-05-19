@@ -1,3 +1,4 @@
+# events/services/booking.py
 from django.db import transaction
 from django.db.models import Count, Q  # noqa: F401
 from django.utils import timezone

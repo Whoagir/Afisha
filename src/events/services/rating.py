@@ -1,3 +1,4 @@
+# events/services/rating.py
 from django.db import transaction
 
 from events.models import Event, Rating
@@ -11,6 +12,12 @@ class EventNotRatable(Exception):
 
 class UserNotAttended(Exception):
     """Исключение: пользователь не посещал событие"""
+
+    pass
+
+
+class EventNotFound(Exception):
+    """Исключение: событие не найдено"""
 
     pass
 
@@ -30,11 +37,14 @@ def rate_event(user, event_id, score, comment=""):
         Rating: созданная или обновленная оценка
 
     Raises:
-        Event.DoesNotExist: если событие не найдено
+        EventNotFound: если событие не найдено
         EventNotRatable: если событие еще не завершено
         UserNotAttended: если пользователь не посещал событие
     """
-    event = Event.objects.get(id=event_id)
+    try:
+        event = Event.objects.get(id=event_id)
+    except Event.DoesNotExist:
+        raise EventNotFound("Событие не найдено")
 
     # Проверяем, что событие завершено
     if event.status != Event.Status.FINISHED:

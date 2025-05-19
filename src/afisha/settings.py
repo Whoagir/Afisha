@@ -1,33 +1,28 @@
 import os
-from datetime import timedelta  # Добавлен новый импорт
+from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
-from celery.schedules import crontab  # Уже был в вашем оригинальном коде
+from celery.schedules import crontab
 from dotenv import load_dotenv
 
-# Загрузка переменных из .env
 load_dotenv()
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-# Безопасность
+
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 DEBUG = os.environ.get("DEBUG", "True") == "True"
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
-# Приложения
+
 INSTALLED_APPS = [
-    # стандартные
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # сторонние
     "rest_framework",
     "django_filters",
     "drf_spectacular",
-    # наши
     "events",
     "notifications",
     "bookings",
@@ -65,20 +60,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "afisha.wsgi.application"
 
-# REST Framework
 REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    ],
 }
 
-SPECTACULAR_SETTINGS = {
-    "TITLE": "Afisha API",
-    "DESCRIPTION": "API for event management",
-    "VERSION": "0.1.0",
-}
-
-# База данных
 DATABASES = {
     "default": dj_database_url.config(
         default=(
@@ -89,7 +84,7 @@ DATABASES = {
         conn_max_age=600,
     )
 }
-# Password validation
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
@@ -104,14 +99,11 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Celery settings
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
 CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]
@@ -119,7 +111,20 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 
-# Celery Beat Schedule
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Afisha API",
+    "DESCRIPTION": "API for event management",
+    "VERSION": "0.1.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SCHEMA_PATH_PREFIX": "/api/",
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "persistAuthorization": True,
+        "displayOperationId": True,
+    },
+}
+
 CELERY_BEAT_SCHEDULE = {
     "finish-events-every-3-hours": {
         "task": "notifications.tasks.finish_events",
@@ -128,7 +133,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     "schedule-reminders-hourly": {
         "task": "notifications.tasks.schedule_reminders",
-        "schedule": crontab(minute=0),  # Каждый час
+        "schedule": crontab(minute=0),
         "options": {"queue": "slow"},
     },
 }

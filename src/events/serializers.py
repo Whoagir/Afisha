@@ -1,3 +1,4 @@
+# events/serializers.py
 from django.db.models import Avg, Count, Q  # noqa: F401
 from django.utils import timezone
 from rest_framework import serializers

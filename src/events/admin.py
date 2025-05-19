@@ -1,3 +1,4 @@
+# events/admin.py
 from django.contrib import admin
 
 from events.models import Event, Rating, Tag

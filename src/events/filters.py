@@ -1,3 +1,4 @@
+# events/filters.py
 import django_filters
 from django.db.models import Avg, Count, F, Q
 
@@ -20,6 +21,21 @@ class EventFilter(django_filters.FilterSet):
     min_rating = django_filters.NumberFilter(method="filter_min_rating")
     organizer = django_filters.CharFilter(
         field_name="organizer__username", lookup_expr="iexact"
+    )
+
+    ordering = django_filters.OrderingFilter(
+        fields=(
+            ("start_at", "start_at"),
+            ("-start_at", "-start_at"),
+            ("created_at", "created_at"),
+            ("average_rating", "average_rating"),
+        ),
+        field_labels={
+            "start_at": "Дата начала (по возрастанию)",
+            "-start_at": "Дата начала (по убыванию)",
+            "created_at": "Дата создания",
+            "average_rating": "Рейтинг",
+        },
     )
 
     class Meta:

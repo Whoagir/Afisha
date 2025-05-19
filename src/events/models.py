@@ -1,3 +1,4 @@
+# events/models.py
 from django.conf import settings
 from django.contrib.postgres.search import SearchVector, SearchVectorField
 from django.core.validators import MaxValueValidator, MinValueValidator
