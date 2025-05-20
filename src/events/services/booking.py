@@ -54,15 +54,12 @@ def create_booking(user, event_id):
     except Event.DoesNotExist:
         raise EventNotFound("Событие не найдено")
 
-    # Проверяем, что событие не завершено и не отменено
     if event.status != Event.Status.EXPECTED:
         raise EventFinished("Событие уже завершено или отменено")
 
-    # Проверяем, что событие еще не началось
     if event.start_at <= timezone.now():
         raise EventFinished("Событие уже началось")
 
-    # Проверяем наличие свободных мест
     active_bookings_count = Booking.objects.filter(
         event=event, cancelled_at__isnull=True
     ).count()
@@ -70,18 +67,15 @@ def create_booking(user, event_id):
     if active_bookings_count >= event.seats:
         raise NoSeats("Нет свободных мест")
 
-    # Создаем или получаем существующее бронирование
     booking, created = Booking.objects.get_or_create(
         user=user, event=event, defaults={"cancelled_at": None}
     )
 
-    # Если бронирование существовало и было отменено, активируем его снова
     if not created and booking.cancelled_at:
         booking.cancelled_at = None
         booking.save(update_fields=["cancelled_at"])
 
-    # Отправляем уведомление асинхронно
-    if created or booking.cancelled_at:
+    if created or (not booking.cancelled_at):
         send_booking_notification.delay(user.id, event.id)
 
     return booking
@@ -111,7 +105,6 @@ def cancel_booking(user, event_id):
 
     booking.cancel()
 
-    # Отправляем уведомление асинхронно
     send_cancel_notification.delay(user.id, event_id)
 
     return booking

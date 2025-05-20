@@ -1,3 +1,8 @@
 [flake8]
 max-line-length = 120
 extend-ignore = E203,W503
+exclude =
+    *pb2*.py
+    *pb2_grpc.py
+    migrations/
+    venv/

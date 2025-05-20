@@ -11,7 +11,6 @@ def get_events_queryset():
     """
     queryset = Event.objects.all().select_related("organizer").prefetch_related("tags")
 
-    # Аннотируем необходимые поля
     queryset = queryset.annotate(
         active_bookings_count=Count(
             "bookings", filter=Q(bookings__cancelled_at__isnull=True)
@@ -33,7 +32,6 @@ def get_user_upcoming_events(user):
         QuerySet с предстоящими событиями пользователя
     """
     now = timezone.now()
-    # Добавляем select_related и prefetch_related для оптимизации
     return (
         Event.objects.filter(
             bookings__user=user,
@@ -47,13 +45,4 @@ def get_user_upcoming_events(user):
 
 
 def can_delete_event(event):
-    """
-    Проверяет, можно ли удалить событие.
-
-    Args:
-        event: событие
-
-    Returns:
-        bool: True, если событие можно удалить
-    """
     return event.can_be_deleted()

@@ -21,9 +21,14 @@ redis = "^5.0.1"
 djangorestframework-simplejwt = "^5.5.0"
 drf-spectacular = "^0.27.0"
 django-cors-headers = "^4.3.1"
+grpcio = "^1.71.0"
+grpcio-tools = "^1.71.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
+
+[took.poetry.scripts]
+generate-proto = "python -m grpc_tools.protoc -I=src/notifications/protos/ --python_out=src/notifications/protos/ --grpc_python_out=src/notifications/protos/ src/notifications/protos/notification.proto"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

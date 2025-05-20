@@ -23,42 +23,27 @@ class EventNotFound(Exception):
 
 
 @transaction.atomic
-def rate_event(user, event_id, score, comment=""):
-    """
-    Оценивает событие пользователем.
+def rate_event(user, event, data):
+    class InvalidRatingData(Exception):
+        """Некорректные данные для оценки"""
 
-    Args:
-        user: Пользователь, который оценивает
-        event_id: ID события
-        score: Оценка (1-5)
-        comment: Комментарий к оценке
+        pass
 
-    Returns:
-        Rating: созданная или обновленная оценка
-
-    Raises:
-        EventNotFound: если событие не найдено
-        EventNotRatable: если событие еще не завершено
-        UserNotAttended: если пользователь не посещал событие
-    """
-    try:
-        event = Event.objects.get(id=event_id)
-    except Event.DoesNotExist:
-        raise EventNotFound("Событие не найдено")
-
-    # Проверяем, что событие завершено
     if event.status != Event.Status.FINISHED:
-        raise EventNotRatable("Можно оценивать только завершенные события")
+        raise EventNotRatable()
 
-    # Проверяем, что пользователь посещал событие
-    attended = event.bookings.filter(user=user, cancelled_at__isnull=True).exists()
+    if not event.bookings.filter(user=user, cancelled_at__isnull=True).exists():
+        raise UserNotAttended()
 
-    if not attended:
-        raise UserNotAttended("Вы не посещали это событие")
+    defaults = {"score": data.get("score"), "comment": data.get("comment", "")}
 
-    # Создаем или обновляем оценку
+    if (
+        not Rating.objects.filter(user=user, event=event).exists()
+        and "score" not in defaults
+    ):
+        InvalidRatingData("Score is required for new ratings")
+
     rating, created = Rating.objects.update_or_create(
-        user=user, event=event, defaults={"score": score, "comment": comment}
+        user=user, event=event, defaults=defaults
     )
-
     return rating

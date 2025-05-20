@@ -15,10 +15,13 @@ class TagSerializer(serializers.ModelSerializer):
 
 class EventListSerializer(serializers.ModelSerializer):
     available_seats = serializers.SerializerMethodField()
-    organizer_name = serializers.CharField(source="organizer.username", read_only=True)
-    average_rating = serializers.FloatField(source="get_average_rating", read_only=True)
-    tags = TagSerializer(many=True, read_only=True)
     is_booked = serializers.SerializerMethodField()
+    average_rating = serializers.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        read_only=True,
+    )
+    organizer_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
@@ -36,15 +39,16 @@ class EventListSerializer(serializers.ModelSerializer):
         ]
 
     def get_available_seats(self, obj):
-        if hasattr(obj, "active_bookings_count"):
-            return obj.seats - obj.active_bookings_count
-        return obj.seats - obj.bookings.filter(cancelled_at__isnull=True).count()
+        return obj.seats - getattr(obj, "active_bookings_count", 0)
+
+    def get_organizer_name(self, obj):
+        return obj.organizer.username if obj.organizer else ""
 
     def get_is_booked(self, obj):
         user = self.context["request"].user
-        if not user.is_authenticated:
-            return False
-        return obj.bookings.filter(user=user, cancelled_at__isnull=True).exists()
+        if user.is_authenticated:
+            return obj.bookings.filter(user=user, cancelled_at__isnull=True).exists()
+        return False
 
 
 class EventDetailSerializer(serializers.ModelSerializer):
@@ -127,27 +131,39 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
 
 class RatingSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    score = serializers.IntegerField(required=False, min_value=1, max_value=10)
+    comment = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Rating
-        fields = ["id", "user", "score", "comment", "created_at"]
-        read_only_fields = ["user", "created_at"]
+        fields = ["id", "user", "score", "comment", "created_at", "updated_at"]
+        read_only_fields = ["user", "created_at", "updated_at"]
 
-    def validate(self, data):
-        """Проверяет, что пользователь может оценить событие"""
-        event = self.context.get("event")
-        user = self.context.get("request").user
+    def validate(self, attrs):
+        if self.instance is None and "score" not in attrs:
+            raise serializers.ValidationError("Score is required for new ratings")
+        return attrs
 
-        # Проверяем, что событие завершено
-        if event.status != Event.Status.FINISHED:
-            raise serializers.ValidationError(
-                "Можно оценивать только завершенные события"
-            )
+    def validate_score(self, value):
+        if value is None:
+            return value
+        if not (1 <= value <= 10):
+            raise serializers.ValidationError("Score must be between 1 and 10")
+        return value
 
-        # Проверяем, что пользователь посещал событие
-        attended = event.bookings.filter(user=user, cancelled_at__isnull=True).exists()
 
-        if not attended:
-            raise serializers.ValidationError("Вы не посещали это событие")
+class EventTagsSerializer(serializers.Serializer):
+    tags = serializers.SlugRelatedField(
+        slug_field="slug", queryset=Tag.objects.all(), many=True, required=True
+    )
 
-        return data
+    def create(self, validated_data):
+        pass
+
+    def update(self, instance, validated_data):
+        pass
+
+    def validate_tags(self, value):
+        if not value:
+            raise serializers.ValidationError("Необходимо указать хотя бы один тег")
+        return value

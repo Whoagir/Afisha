@@ -43,16 +43,18 @@ class EventFilter(django_filters.FilterSet):
         fields = ["city", "status", "tags"]
 
     def filter_has_seats(self, queryset, name, value):
-        if value:
-            # Аннотируем количество активных бронирований
-            queryset = queryset.annotate(
-                active_bookings_count=Count(
-                    "bookings", filter=Q(bookings__cancelled_at__isnull=True)
-                )
+        queryset = queryset.annotate(
+            active_bookings_count=Count(
+                "bookings", filter=Q(bookings__cancelled_at__isnull=True)
             )
-            # Фильтруем события, где есть свободные места
+        )
+
+        if value:
+            # Если value=True, фильтруем события, где есть свободные места
             return queryset.filter(seats__gt=F("active_bookings_count"))
-        return queryset
+        else:
+            # Если value=False, фильтруем события, где нет свободных мест
+            return queryset.filter(seats__lte=F("active_bookings_count"))
 
     def filter_search(self, queryset, name, value):
         if not value:

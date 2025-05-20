@@ -34,3 +34,23 @@ def register_user(username, email, password, first_name="", last_name=""):
         "refresh": str(refresh),
         "access": str(refresh.access_token),
     }
+
+
+def refresh_token(refresh_token):
+    """
+    Обновляет access токен, используя refresh токен.
+
+    Args:
+        refresh_token (str): Refresh токен.
+
+    Returns:
+        dict: Словарь с новыми refresh и access токенами.
+
+    Raises:
+        TokenError: Если refresh токен недействителен.
+    """
+    refresh = RefreshToken(refresh_token)
+    return {
+        "refresh": str(refresh),
+        "access": str(refresh.access_token),
+    }

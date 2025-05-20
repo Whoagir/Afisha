@@ -1,11 +1,24 @@
 # events/admin.py
+from django import forms
 from django.contrib import admin
+from django.core.validators import MinValueValidator
 
 from events.models import Event, Rating, Tag
 
 
+class EventForm(forms.ModelForm):
+    seats = forms.IntegerField(
+        validators=[MinValueValidator(1)], help_text="Минимальное количество мест: 1"
+    )
+
+    class Meta:
+        model = Event
+        fields = "__all__"
+
+
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
+    form = EventForm
     list_display = ("title", "start_at", "city", "status", "seats", "organizer")
     list_filter = ("status", "city", "start_at")
     search_fields = ("title", "description", "organizer__username")

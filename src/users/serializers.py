@@ -1,3 +1,4 @@
+# users/serializers.py
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
@@ -47,17 +48,18 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        # Удаляем поле password_confirm, так как оно не нужно при создании пользователя
         validated_data.pop("password_confirm")
 
         # Создаем пользователя с зашифрованным паролем
-        user = User.objects.create_user(
+        user = User(
             username=validated_data["username"],
             email=validated_data["email"],
-            password=validated_data["password"],
             first_name=validated_data.get("first_name", ""),
             last_name=validated_data.get("last_name", ""),
         )
+        user.set_password(validated_data["password"])
+        user.save()
+
         return user
 
 

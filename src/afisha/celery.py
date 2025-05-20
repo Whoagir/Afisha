@@ -3,21 +3,22 @@ import os
 
 from celery import Celery
 
-# Set the default Django settings module for the 'celery' program.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "afisha.settings")
 
 app = Celery("afisha")
 
-# Using a string here means the worker doesn't have to serialize
-# the configuration object to child processes.
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
-# Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
 
 # Настройка очередей
 app.conf.task_routes = {
-    "notifications.*": {"queue": "fast"},
+    "notifications.tasks.send_booking_notification": {"queue": "fast"},
+    "notifications.tasks.send_cancel_notification": {"queue": "fast"},
+    "notifications.tasks.send_reminder": {"queue": "fast"},
+    "notifications.tasks.send_event_cancelled_notification": {"queue": "fast"},
+    "notifications.tasks.schedule_reminders": {"queue": "slow"},
+    "notifications.tasks.finish_events": {"queue": "slow"},
     "*": {"queue": "slow"},
 }
 
