@@ -28,6 +28,7 @@ services:
     command: >
       sh -c "python manage.py wait_for_db &&
              python manage.py migrate &&
+             python manage.py createsuperuser --noinput || true &&
              gunicorn afisha.wsgi:application -b 0.0.0.0:8000 -w 3"
     volumes: ["./src:/app"]
     env_file: .env
@@ -36,6 +37,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      email_notification:
+        condition: service_started
     ports: ["8000:8000"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
@@ -75,6 +78,15 @@ services:
     env_file: .env
     depends_on:
       - web
+
+  email_notification:
+    build:
+      context: .
+      dockerfile: Dockerfile.email
+    command: python /app/email_notification/server.py
+    volumes: ["./email_notification:/app/email_notification"]
+    env_file: .env
+    ports: ["50051:50051"]
 
 volumes:
   postgres_data:

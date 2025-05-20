@@ -10,7 +10,7 @@ class TokenRefreshMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # Проверяем наличие токена в заголовке
+        # Проверяем наличие токена в заголовке (ну это и прикол, можно попасть в 4-е измерение токенов)
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
             token = auth_header.split(" ")[1]

@@ -41,5 +41,7 @@ ENV PYTHONPATH=/app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+# Запускаем от имени непривилегированного пользователя
 USER nobody
+
 CMD ["gunicorn", "afisha.wsgi:application", "-b", "0.0.0.0:8000", "-w", "3"]

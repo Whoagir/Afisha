@@ -447,7 +447,6 @@ class EventViewSet(viewsets.ModelViewSet):
             Event.objects.all().select_related("organizer").prefetch_related("tags")
         )
 
-        # Аннотируем необходимые поля
         queryset = queryset.annotate(
             active_bookings_count=Count(
                 "bookings", filter=Q(bookings__cancelled_at__isnull=True)
@@ -828,7 +827,7 @@ class TagViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["name", "slug"]
     ordering_fields = ["name", "id"]
-    lookup_field = "name"  # Изменяем lookup_field на 'name' вместо 'id' по умолчанию
+    lookup_field = "name"
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_permissions(self):

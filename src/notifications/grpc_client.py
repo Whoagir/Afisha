@@ -4,7 +4,6 @@ import os
 import grpc
 from django.conf import settings
 
-# Импортируем сгенерированные gRPC файлы через правильный путь
 from notifications.protos import notification_pb2, notification_pb2_grpc
 
 logger = logging.getLogger(__name__)

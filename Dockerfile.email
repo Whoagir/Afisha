@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Установка необходимых зависимостей
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Копирование только необходимых файлов
+COPY email_notification/ /app/email_notification/
+
+# Установка зависимостей
+RUN pip install --no-cache-dir -r email_notification/requirements.txt
+
+ENV PYTHONPATH=/app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+EXPOSE 50051
+
+CMD ["python", "/app/email_notification/server.py"]

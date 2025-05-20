@@ -35,14 +35,11 @@ class EventModelTests(TestCase):
         self.assertEqual(self.event.organizer, self.user)
 
     def test_can_be_deleted(self):
-        # Новое событие должно быть доступно для удаления
         self.assertTrue(self.event.can_be_deleted())
 
-        # Меняем время создания на более чем час назад
         self.event.created_at = timezone.now() - timedelta(hours=2)
         self.event.save()
 
-        # Теперь событие не должно быть доступно для удаления
         self.assertFalse(self.event.can_be_deleted())
 
 
@@ -103,21 +100,17 @@ class EventAPITests(APITestCase):
             organizer=self.user,
         )
 
-        # Создаем бронирование
         booking = Booking.objects.create(user=self.user, event=event)
 
-        # Отменяем бронирование
         url = reverse("event-cancel-booking", args=[event.id])
         response = self.client.post(url)
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-        # Проверяем, что бронирование отменено
         booking.refresh_from_db()
         self.assertIsNotNone(booking.cancelled_at)
 
     def test_my_upcoming_events(self):
-        # Создаем два события
         event1 = Event.objects.create(
             title="Test Event 1",
             description="Test Description 1",
@@ -136,11 +129,9 @@ class EventAPITests(APITestCase):
             organizer=self.user,
         )
 
-        # Бронируем места на оба события
         Booking.objects.create(user=self.user, event=event1)
         Booking.objects.create(user=self.user, event=event2)
 
-        # Получаем список предстоящих событий
         url = reverse("event-my-upcoming")
         response = self.client.get(url)
 
@@ -148,7 +139,6 @@ class EventAPITests(APITestCase):
         self.assertEqual(len(response.data), 2)
 
     def test_rate_event(self):
-        # Создаем завершенное событие
         event = Event.objects.create(
             title="Test Event",
             description="Test Description",
@@ -159,10 +149,8 @@ class EventAPITests(APITestCase):
             status=Event.Status.FINISHED,
         )
 
-        # Создаем бронирование
         Booking.objects.create(user=self.user, event=event)
 
-        # Оцениваем событие
         url = reverse("event-rate", args=[event.id])
         data = {"score": 5, "comment": "Great event!"}
         response = self.client.post(url, data, format="json")

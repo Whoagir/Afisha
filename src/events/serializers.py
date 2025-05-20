@@ -95,7 +95,6 @@ class EventDetailSerializer(serializers.ModelSerializer):
         if not user.is_authenticated:
             return False
 
-        # Можно оценить, если событие завершено и пользователь посещал его
         return (
             obj.status == Event.Status.FINISHED
             and obj.bookings.filter(user=user, cancelled_at__isnull=True).exists()
@@ -121,7 +120,6 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
 
     def validate_status(self, value):
         """Проверяет, что статус события валидный"""
-        # При создании нового события можно указать только EXPECTED
         if not self.instance and value != Event.Status.EXPECTED:
             raise serializers.ValidationError(
                 "При создании события можно указать только статус 'Ожидается'"

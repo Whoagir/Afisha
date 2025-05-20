@@ -53,7 +53,7 @@ class Event(models.Model):
     )
     ratings_count: models.PositiveIntegerField = models.PositiveIntegerField(
         default=0, editable=False
-    )  # Аннотация добавлена
+    )
 
     class Meta:
         ordering = ["status", "start_at"]

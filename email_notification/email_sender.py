@@ -13,7 +13,6 @@ class EmailSender:
         self.smtp_user = smtp_user
         self.smtp_password = smtp_password
 
-        # Проверяем, что все необходимые параметры указаны
         if not all([smtp_host, smtp_port, smtp_user, smtp_password]):
             logger.warning(
                 "SMTP configuration is incomplete. Emails will be logged but not sent."
@@ -42,18 +41,15 @@ class EmailSender:
             return True
 
         try:
-            # Создаем сообщение
             msg = MIMEMultipart()
             msg["From"] = sender_email
             msg["To"] = recipient_email
             msg["Subject"] = subject
 
-            # Добавляем текст сообщения
             msg.attach(MIMEText(message, "plain"))
 
-            # Устанавливаем соединение с SMTP сервером
             with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()  # Включаем TLS шифрование
+                server.starttls()
                 server.login(self.smtp_user, self.smtp_password)
                 server.send_message(msg)
 
