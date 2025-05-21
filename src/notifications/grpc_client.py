@@ -1,3 +1,4 @@
+# src/notifications/grpc_client.py
 import logging
 import os
 
@@ -22,19 +23,27 @@ class EmailClient:
             os.environ.get("DEFAULT_EMAIL_SENDER", "noreply@example.com"),
         )
 
-    def send_email(self, recipient_email, subject, message, sender_email=None):
+    def send_email(self, recipient_email, subject, message, **kwargs):
         try:
             with grpc.insecure_channel(self.grpc_server) as channel:
                 stub = notification_pb2_grpc.EmailServiceStub(channel)
+
+                # Добавляем метаданные
+                metadata = [
+                    ("notification_type", kwargs.get("notification_type", "generic")),
+                    ("user_id", str(kwargs.get("user_id", 0))),
+                    ("event_id", str(kwargs.get("event_id", 0))),
+                ]
 
                 request = notification_pb2.EmailRequest(
                     recipient_email=recipient_email,
                     subject=subject,
                     message=message,
-                    sender_email=sender_email or self.default_sender,
+                    sender_email=kwargs.get("sender_email", self.default_sender),
                 )
 
-                response = stub.SendEmail(request)
+                # Передаем метаданные в вызов
+                response = stub.SendEmail(request, metadata=metadata)
 
                 if response.success:
                     logger.info(

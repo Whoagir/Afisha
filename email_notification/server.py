@@ -1,76 +1,72 @@
+# email_notofication/server.py
 import logging
 import os
 import time
 from concurrent import futures
 
+import django
 import grpc
 import notification_pb2
 import notification_pb2_grpc
 from dotenv import load_dotenv
-from email_sender import EmailSender
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "src.afisha.settings")  # noqa: F402
+
+# Инициализируем Django
+django.setup()  # noqa: F402
+
+from src.notifications.tasks import send_booking_notification  # noqa: E402
+from src.notifications.tasks import send_cancel_notification  # noqa: E402
+from src.notifications.tasks import send_event_cancelled_notification  # noqa: E402
+from src.notifications.tasks import send_reminder  # noqa: E402
 
 load_dotenv("../.env")
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
 logger = logging.getLogger(__name__)
 
 
 class EmailServicer(notification_pb2_grpc.EmailServiceServicer):
-    def __init__(self):
-        # Валидация обязательных переменных окружения
-        required_env_vars = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD"]
-        for var in required_env_vars:
-            if not os.getenv(var):
-                logger.error(f"Missing required environment variable: {var}")
-                raise RuntimeError(f"Missing required environment variable: {var}")
-
-        try:
-            self.email_sender = EmailSender(
-                smtp_host=os.environ["SMTP_HOST"],
-                smtp_port=int(os.environ["SMTP_PORT"]),
-                smtp_user=os.environ["SMTP_USER"],
-                smtp_password=os.environ["SMTP_PASSWORD"],
-            )
-            logger.info("Email servicer initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize email sender: {str(e)}")
-            raise
-
     def SendEmail(self, request, context):
         logger.info(f"Received email request for {request.recipient_email}")
 
         try:
-            sender_email = request.sender_email or os.getenv("DEFAULT_SENDER")
-            if not sender_email:
-                logger.error(
-                    "Sender email not specified in request and DEFAULT_SENDER not set"
-                )
-                return notification_pb2.EmailResponse(
-                    success=False, message="Sender email not configured"
-                )
+            # Определяем тип уведомления из метаданных
+            metadata = dict(context.invocation_metadata())
+            notification_type = metadata.get("notification_type", "generic")
 
-            success = self.email_sender.send_email(
-                recipient_email=request.recipient_email,
-                subject=request.subject,
-                message=request.message,
-                sender_email=sender_email,
-            )
-
-            if success:
-                logger.info(f"Email sent successfully to {request.recipient_email}")
-                return notification_pb2.EmailResponse(
-                    success=True, message="Email sent successfully"
+            # Ставим задачу в Celery в зависимости от типа
+            if notification_type == "booking":
+                send_booking_notification.delay(
+                    user_id=int(metadata["user_id"]), event_id=int(metadata["event_id"])
+                )
+            elif notification_type == "cancellation":
+                send_cancel_notification.delay(
+                    user_id=int(metadata["user_id"]), event_id=int(metadata["event_id"])
+                )
+            elif notification_type == "reminder":
+                send_reminder.delay(
+                    user_id=int(metadata["user_id"]), event_id=int(metadata["event_id"])
+                )
+            elif notification_type == "event_cancelled":
+                send_event_cancelled_notification.delay(
+                    event_id=int(metadata["event_id"])
                 )
             else:
-                logger.error(f"Failed to send email to {request.recipient_email}")
                 return notification_pb2.EmailResponse(
-                    success=False, message="Failed to send email"
+                    success=False,
+                    message=f"Unsupported notification type: {notification_type}",
                 )
+
+            return notification_pb2.EmailResponse(
+                success=True, message="Notification task queued successfully"
+            )
+
+        except KeyError as e:
+            logger.error(f"Missing metadata: {str(e)}")
+            return notification_pb2.EmailResponse(
+                success=False, message=f"Missing required metadata: {str(e)}"
+            )
         except Exception as e:
-            logger.exception(f"Error sending email: {str(e)}")
+            logger.exception(f"Error queuing task: {str(e)}")
             return notification_pb2.EmailResponse(
                 success=False, message=f"Internal server error: {str(e)}"
             )
@@ -97,7 +93,7 @@ def serve():
             time.sleep(86400)
     except KeyboardInterrupt:
         logger.info("Shutting down server...")
-        server.stop(5).wait()  # Graceful shutdown with 5 seconds timeout
+        server.stop(5).wait()
         logger.info("Server stopped gracefully")
 
 

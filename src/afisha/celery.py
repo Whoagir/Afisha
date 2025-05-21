@@ -4,13 +4,12 @@ import os
 from celery import Celery
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "afisha.settings")
-
+broker_connection_retry_on_startup = True
 app = Celery("afisha")
 
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
-app.autodiscover_tasks()
-
+app.autodiscover_tasks(["bookings", "events", "notifications", "users"])
 # Настройка очередей
 app.conf.task_routes = {
     "notifications.tasks.send_booking_notification": {"queue": "fast"},

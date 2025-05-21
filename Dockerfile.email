@@ -9,6 +9,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Копирование только необходимых файлов
 COPY email_notification/ /app/email_notification/
+COPY src/ /app/src/
+
+RUN ln -s /app/src/bookings /app/bookings && \
+    ln -s /app/src/events /app/events && \
+    ln -s /app/src/notifications /app/notifications && \
+    ln -s /app/src/common /app/common && \
+    ln -s /app/src/users /app/users
 
 # Установка зависимостей
 RUN pip install --no-cache-dir -r email_notification/requirements.txt
@@ -16,6 +23,7 @@ RUN pip install --no-cache-dir -r email_notification/requirements.txt
 ENV PYTHONPATH=/app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=src.afisha.settings
 
 EXPOSE 50051
 

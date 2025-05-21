@@ -1,4 +1,3 @@
-# src/users/tests/test_me_endpoint.py
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
@@ -26,26 +25,26 @@ class MeEndpointTests(APITestCase):
         self.assertEqual(response.data["username"], "testuser")
         self.assertEqual(response.data["email"], "test@example.com")
 
-    def test_put_me(self):
-        """Тест полного обновления данных текущего пользователя"""
+    def test_patch_me(self):
+        """Тест обновления данных текущего пользователя"""
         data = {
             "email": "updated@example.com",
             "first_name": "Updated",
             "last_name": "Name",
         }
-        response = self.client.put(self.me_url, data)
+        response = self.client.patch(self.me_url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["email"], "updated@example.com")
         self.assertEqual(response.data["first_name"], "Updated")
         self.assertEqual(response.data["last_name"], "Name")
 
-    def test_patch_me(self):
+    def test_partial_patch_me(self):
         """Тест частичного обновления данных текущего пользователя"""
         data = {"first_name": "Patched"}
         response = self.client.patch(self.me_url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["first_name"], "Patched")
-        self.assertEqual(response.data["last_name"], "User")  # Не изменилось
+        self.assertEqual(response.data["last_name"], "User")
 
     def test_delete_me(self):
         """Тест удаления аккаунта текущего пользователя"""
